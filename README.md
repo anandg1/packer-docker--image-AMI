@@ -34,7 +34,7 @@ PHASE II:It includes the packer AMI building. This is done as a second part of t
  ## Architecture:
 ![
 alt_txt
-]()
+](https://github.com/anandg1/packer-docker--image-AMI/blob/main/Arc.jpg)
  ## Code:
  Packer Code (packer.pkr.hcl) :
  
