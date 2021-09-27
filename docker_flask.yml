@@ -1,0 +1,55 @@
+---
+- name: "Docker Container Creation"
+  hosts: all
+  become: yes
+  vars:
+    - imageName: "anandgopinath/flask:latest"
+    - containerName: "web" 
+    - ports: "80:5000"
+  tasks:
+    - name: "Docker Installation"
+      shell: amazon-linux-extras install docker -y
+
+    - name: "Package Installation"
+      yum:
+        name:
+          - python-pip
+        state: present
+
+    - name: "Installing Docker extension"
+      pip:
+        name: docker-py
+
+    - name: "Docker service Enable/Restart"
+      service:
+        name: docker
+        state: restarted
+        enabled: true
+      register: dockerValue
+       
+    - name: "Restarting and Enabling docker"
+      when: dockerValue.changed
+      service:
+          name: docker
+          state: restarted
+          enabled: true
+
+    - name: "Install Docker-Python"
+      pip:
+        name: docker-py 
+        state: latest
+
+    - name: "Pulling httpd Docker Image"
+      docker_image: 
+        name: "{{imageName}}"
+        source: pull
+        state: present
+        
+    - name: "Creating Docker Container"
+      docker_container:
+        name: "{{containerName}}"
+        detach: yes
+        image: "{{imageName}}"
+        ports: "{{ports}}"
+        restart_policy: always
+        state: started

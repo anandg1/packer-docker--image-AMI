@@ -1,0 +1,80 @@
+---
+- name: "Docker Image"
+  hosts: localhost
+  become: true
+  gather_facts: false
+  vars:
+    repo_url: "https://github.com/anandg1/flask.git"
+    repo_dest: "/var/repository/"
+    imageName: "anandgopinath/flask:latest"
+    docker_password: "xxxxxxxx"
+  tasks:
+    - name: "Installing dependencies"
+      apt:
+        name: ['python3', 'apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common', 'git', 'python3-pip']
+        state: latest
+
+    - name: "Adding gpg key"
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: "Adding repositiries for docker"
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: "Installing docker"
+      apt:
+        update_cache: yes
+        name: docker-ce
+        state: latest
+      register: dockerValue
+
+    - name: "Restarting and Enabling docker"
+      when: dockerValue.changed
+      service:
+          name: docker
+          state: restarted
+          enabled: true
+
+    - name: "Install Docker Python Module"
+      pip:
+        name: docker-py
+        state: latest
+
+    - name: "Cloning Repository"
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+      register: repo_status
+
+    - name: "Login to remote Repo"
+      when: repo_status.changed
+      docker_login:
+        username: anandgopinath
+        password: "{{ docker_password }}"
+
+    - name: "Building image"
+      docker_image:
+        source: build
+        build:
+          path: "{{ repo_dest }}"
+          pull: yes
+        name: "{{ imageName }}"
+        tag: "{{ item }}"
+        push: true
+        force_tag: yes
+        force_source: yes
+      with_items:
+        - "{{ repo_status.after }}"
+        - latest
+
+    - name: "Removing image"
+      docker_image:
+        state: absent
+        name: "{{ imageName }}"
+        tag: "{{ item }}"
+      with_items:
+        - "{{ repo_status.after }}"
+        - latest
